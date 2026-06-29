@@ -1,9 +1,9 @@
 Package: BPSMKL
-Title: What the Package Does (One Line, Title Case)
+Title: Bayesian Pathway-Structured Multiple Kernel Kearning (BPS-MKL)
 Version: 0.0.0.9000
 Authors@R: 
-    person("First", "Last", , "first.last@example.com", role = c("aut", "cre"))
-Description: What the package does (one paragraph).
+    person("Yuzi", "Mi", , "mi000014@umn.edu", role = c("aut", "cre"))
+Description: BPSMKL is an R package for simultaneously identifying important groups, features within groups, and interactions among features.
 License: GPL (>= 3)
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
