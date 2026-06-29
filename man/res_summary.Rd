@@ -14,7 +14,7 @@ res_summary(
 )
 }
 \arguments{
-\item{res}{Result list returned by \code{bsp_mkl()} or \code{bsp_mkl_app()}.}
+\item{res}{Result list returned by \code{bps_mkl()} or \code{bps_mkl_app()}.}
 
 \item{pathway}{Optional simulated pathway object, such as the output from
 \code{simulate_pathway()}. When supplied, \code{pathway$A_imp} is used as truth for
@@ -36,7 +36,7 @@ available. Defaults to \code{FALSE}.}
 \value{
 A list containing:
 \describe{
-\item{\code{idx_res}}{A data frame with \code{pathway}, \code{idx1}, \code{idx2},
+\item{\code{idx_res}}{A data frame with \code{pathway_id}, \code{idx1}, \code{idx2},
 \code{estimated}, and \code{P_pathway}. If \code{pathway} is supplied, it also contains
 \code{truth}.}
 \item{\code{auc_sim}}{A data frame with pathway-level AUC values. Returned only

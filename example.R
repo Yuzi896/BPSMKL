@@ -1,6 +1,6 @@
 set.seed(1)
-N <- 5000
-burnin <- 1000
+N <- 50
+burnin <- 10
 L <- 3
 n <- 100
 p <- 50
@@ -38,7 +38,7 @@ for(l in 1:L){
 
 Y <- drop(FX %*% beta + rnorm(n, sd = sqrt(sigma2)))
 
-result <- bsp_mkl(
+result <- bps_mkl(
   iterations = N,
   burn = burnin,
   L = L,
@@ -51,8 +51,8 @@ result <- bsp_mkl(
   Etas = A_imp
 )
 
-#  Nyström approximate
-# result <- bsp_mkl_app(
+# # Nyström approximate
+# result1 <- bps_mkl_app(
 #   iterations = N,
 #   burn = burnin,
 #   L = L,
@@ -65,3 +65,5 @@ result <- bsp_mkl(
 #   gammas = gamma,
 #   Etas = A_imp
 # )
+
+res_summary(result,Figure=TRUE)

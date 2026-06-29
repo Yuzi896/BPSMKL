@@ -30,32 +30,6 @@ void ProgressBar(int cur, int total, int step = 10)
               << spinny_thing << status << std::flush;
 }
 
-List cal_post(vec gammas, vec betas, double sigma2, List K_list, int L, vec constants, vec Y)
-{
-
-  // double log_prior = 0;
-
-  int n = Y.n_rows; // number of observations
-  vec J(Y.size(), fill::ones);
-  mat K_whole(n, n, fill::zeros);
-
-  for (int l = 0; l < L; l++)
-  {
-    mat K = as<mat>(K_list[l]);
-    K = (gammas[l] * pow(betas[l], 2)) * K;
-    K_whole += K;
-  }
-
-  mat cov = K_whole + sigma2 * eye(n, n); // kernel is important
-
-  // sample for Y
-  vec mu = 0 * J;
-  vec sample_y = mvnrnd(mu, cov);
-
-  return List::create(
-    _["Y"] = sample_y);
-}
-
 
 double cal_lik(const arma::vec& gammas,
                const arma::vec& betas,
@@ -67,7 +41,6 @@ double cal_lik(const arma::vec& gammas,
 {
 
   const arma::uword n = Y.n_elem;
-  // const arma::uword L = K_list.size();
 
   if (gammas.n_elem != L || betas.n_elem != L) {
     Rcpp::stop("gammas, betas, and K_list must have the same length.");
@@ -104,10 +77,6 @@ double cal_lik(const arma::vec& gammas,
       jitter *= 10.0;
     }
     if (!ok) {
-      // Rcout << gammas << " " << betas << endl;
-      // const arma::mat& K = K_cache[0];
-      // Rcout <<  K << endl;
-
       Rcpp::stop("Cholesky decomposition failed in cal_lik().");
     }
   }
@@ -128,11 +97,6 @@ double cal_lik(const arma::vec& gammas,
 mat sqdist_sym_1d(const vec& x){
   const int N = x.n_elem;
   mat D(N,N, arma::fill::zeros);
-
-  // D = -2.0 * (x * x.t());
-  // arma::vec x2 = arma::square(x);
-  // D.each_col() += x2;
-  // D.each_row() += x2.t();
 
   arma::vec x2 = arma::square(x);
   D = arma::repmat(x2, 1, N) +
@@ -166,18 +130,9 @@ arma::mat get_K_fast(int update,
                 std::vector<arma::mat>& Dsq_cache,
                 std::vector<unsigned char>& have_dsq,
                 int eta = -1,
-                // int i = -1,
-                // int j = -1
                 const int l = -1)
 {
   const int N = X.n_rows;
-  // const int P = X.n_cols;
-
-  // arma::mat Eta_work = Eta;   // local copy
-  // if (update == 1 && i >= 0 && j >= 0) {
-  //   Eta_work(j, i) = Eta_work(i, j) = eta;
-  // }
-
   arma::vec Eta_work = Eta;   // local copy
   if (update == 1 && l >= 0) {
     Eta_work(l) = eta;
@@ -345,9 +300,7 @@ arma::mat get_K_cpp(int update,
 
 
 void update_eta(int k,
-                // int i,
-                // int j,
-                int l,
+               int l,
                 int L,
                 double sigma2,
                 const arma::vec& lambdas,
@@ -356,7 +309,6 @@ void update_eta(int k,
                 const arma::vec& betas,
                 const arma::vec& constants,
                 const arma::vec& Y,
-                // arma::mat& Eta,
                 arma::vec& Eta,
                 const arma::mat& X,
                 std::vector<arma::mat>& K_cache,
@@ -424,15 +376,9 @@ void update_eta(int k,
   const double eta_new = (arma::randu() < prob_one) ? 1.0 : 0.0;
 
   if (eta_new != eta_curr) {
-    // if Eta is a matrix
-    // Eta(i, j) = eta_new;
-    // Eta(j, i) = eta_new;
-
-    // but for memory issue, we want to only store vector of eta
     Eta(k) = eta_new;
     ll = log_lik2;
-    // keep K_cache[l] = K_star
-    } else {
+  } else {
     K_cache[l] = K_old;  // revert
   }
 }
@@ -604,8 +550,7 @@ void update_lambda(vec& lambdas,
     ll = ll_star;
     accept_lambdas[2 * l] += 1.0;
     lambda0 = lambdas[2 * l];
-    // keep K_cache[l] = K_star0
-    } else {
+  } else {
     K_cache[l] = K_old;
   }
 
@@ -630,8 +575,7 @@ void update_lambda(vec& lambdas,
     lambdas[2 * l + 1] = lambda_star[1];
     ll = ll_star;
     accept_lambdas[2 * l + 1] += 1.0;
-    // keep K_cache[l] = K_star1
-    } else {
+  } else {
     K_cache[l] = K_old2;
   }
 }
@@ -642,9 +586,6 @@ double prior_sigma(vec constants,double sigma2){
   return log_prior;
 }
 
-// here we will need to change sigma2, ll, and accept_sigma2
-// with & means we are referencing
-// const mean these are read only
 void update_variance(double& sigma2,
                      const vec& Y,
                      const vec& constants,
@@ -679,13 +620,9 @@ IntegerMatrix extract_edges_fast(const arma::mat& A) {
 
   arma::uword p = A.n_rows;
 
-  // // upper triangle (exclude diagonal)
-  // arma::uvec lin_idx = arma::find( arma::trimatu(A, 1) > 0 );
-
   // upper triangle (including diagonal)
   arma::uvec lin_idx = arma::find( arma::trimatu(A, 0) > 0 );
 
-  // int n_edges = (int)lin_idx.n_elem + (int)p;
   int n_edges = (int)lin_idx.n_elem;
   IntegerMatrix out(n_edges, 2);
   std::vector<bool> seen(p, false);
@@ -709,27 +646,6 @@ IntegerMatrix extract_edges_fast(const arma::mat& A) {
 
   }
   return out;
-  // int diag_count = 0;
-  // // Diagonal (self-loops)
-  // for (arma::uword i = 0; i < p; ++i) {
-  //   if(seen[i]){
-  //     int row = (int)lin_idx.n_elem + diag_count;
-  //     out(row, 0) = (int)i;
-  //     out(row, 1) = (int)i;
-  //     diag_count += 1;
-  //   }
-  // }
-  //
-  // int n_final = (int)lin_idx.n_elem + diag_count;
-  //
-  // // Trim to final size
-  // IntegerMatrix res(n_final, 2);
-  // for (int i = 0; i < n_final; ++i) {
-  //   res(i, 0) = out(i, 0);
-  //   res(i, 1) = out(i, 1);
-  // }
-  //
-  // return res;
 }
 
 
@@ -768,8 +684,6 @@ Rcpp::List run_mcmc(int iterations, int burn, int L,
 
   // setup memory storage for distance matrix
   std::vector<mat> Dsq_cache(p);
-  // a integer data type store small, non-negative whole numbers; create P vector with value 0;
-  // this has less memory than int
   std::vector<unsigned char> have_dsq(p, 0);
 
   // here we need to change list into C++ vectors
@@ -781,15 +695,12 @@ Rcpp::List run_mcmc(int iterations, int burn, int L,
   // we are creating each matrix inside the vector
   for (int l = 0; l < L; ++l) {
     A_cache[l] = Rcpp::as<arma::mat>(As[l]);
-    // Eta_cache[l] = Rcpp::as<arma::mat>(Etas_in[l]) % A_cache[l];
-
     idx_cache[l] = extract_edges_fast(A_cache[l]);
     Eta_cache[l] = extract_eta(idx_cache[l] ,Rcpp::as<arma::mat>(Etas_in[l]) % A_cache[l]);
 
     K_cache[l] = get_K_fast(0, X, Eta_cache[l],
                            lambdas.subvec(2*l, 2*l + 1), idx_cache[l],Dsq_cache,have_dsq);
 
-    // eta_store[l].set_size(iterations, p * p);
     eta_store[l].set_size(iterations, idx_cache[l].nrow());
     eta_store[l].fill(arma::datum::nan);
   }
@@ -811,18 +722,15 @@ Rcpp::List run_mcmc(int iterations, int burn, int L,
   arma::vec accept_lambda(2 * L, arma::fill::zeros);
   arma::vec total_accept_lambda(2 * L, arma::fill::zeros);
 
-  // Rcpp::List Ks_list(L);
-  // for (int l = 0; l < L; ++l) Ks_list[l] = K_cache[l];
 
   double ll = cal_lik(gammas, betas, Y, constants, K_cache, L, sigma2);
 
   for (int iteration = 1; iteration <= iterations; ++iteration) {
-    Rcout << iteration << "\n" << endl;
+    // Rcout << iteration << "\n" << endl;
 
-    // ProgressBar(iteration, iterations, 50);
+    ProgressBar(iteration, iterations, 50);
 
     for (int l = 0; l < L; ++l) {
-      // arma::mat& Eta = Eta_cache[l];
       arma::vec& Eta = Eta_cache[l];
 
       Rcpp::IntegerMatrix& idx = idx_cache[l];
@@ -833,10 +741,6 @@ Rcpp::List run_mcmc(int iterations, int burn, int L,
 
       const int Nidx = idx.nrow();
       for (int k = 0; k < Nidx; ++k) {
-        // int i = idx(k, 0);
-        // int j = idx(k, 1);
-        // update_eta(i, j, l, L, sigma2, lambdas, ll, gammas, betas,
-        //            constants, Y, Eta, X, K_cache, idx,Dsq_cache,have_dsq);
         update_eta(k, l, L, sigma2, lambdas, ll, gammas, betas,
                    constants, Y, Eta, X, K_cache, idx,Dsq_cache,have_dsq);
       }
@@ -845,8 +749,6 @@ Rcpp::List run_mcmc(int iterations, int burn, int L,
                     X, Eta, K_cache, L, l, proposal_sd, accept_lambda,
                     iteration, burn, idx,Dsq_cache,have_dsq);
 
-
-      // eta_store[l].row(iteration - 1) = mat_to_vec(Eta);
       eta_store[l].row(iteration - 1) = Eta.t();
 
       if (iteration % 100 == 0) {
@@ -882,8 +784,6 @@ Rcpp::List run_mcmc(int iterations, int burn, int L,
     lambda_save.col(iteration - 1) = lambdas;
     sigma_save(iteration - 1) = sigma2;
     ll_save(iteration - 1) = ll;
-    // Rcpp::List post_Y = cal_post(gammas, betas, sigma2, K_cache, L, constants, Y);
-    // Y_whole.col(iteration - 1) = Rcpp::as<arma::vec>(post_Y["Y"]);
   }
 
   // For output purpose, we want to change the format of Eta to a list
@@ -902,8 +802,7 @@ Rcpp::List run_mcmc(int iterations, int burn, int L,
     Rcpp::_["eta_whole"] = eta_whole_out,
     Rcpp::_["eta_idx"] = idx_out,
     Rcpp::_["lambda_save"] = lambda_save.t(),
-    Rcpp::_["ll_save"] = ll_save // ,
-    // Rcpp::_["Y"] = Y_whole.t()
+    Rcpp::_["ll_save"] = ll_save
   );
 
 }

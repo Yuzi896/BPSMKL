@@ -1,8 +1,8 @@
 #' Run approximate BPS-MKL from individual initial values
 #'
-#' `bsp_mkl_app()` collects the individual initial values into the list expected
+#' `bps_mkl_app()` collects the individual initial values into the list expected
 #' by the optimized C++ sampler and then runs the approximate Nyström BPS-MKL
-#' MCMC algorithm.
+#' algorithm.
 #'
 #' @param iterations Integer. Total number of MCMC iterations to run.
 #' @param burn Integer. Number of burn-in iterations used for proposal
@@ -15,9 +15,9 @@
 #'   predictors in columns.
 #' @param m Integer. Number of observations, or rows of `X`, to sample as
 #'   Nyström landmarks.
-#' @param P_eta Numeric scalar eta inclusion probability.
-#' @param P_gamma Numeric scalar gamma inclusion probability.
-#' @param sigma2 Numeric scalar initial residual variance.
+#' @param P_eta Numeric scalar. eta inclusion probability.
+#' @param P_gamma Numeric scalar. gamma inclusion probability.
+#' @param sigma2 Numeric scalar. initial residual variance.
 #' @param lambdas Numeric vector of length `2 * L`, with interaction and
 #'   main-effect bandwidths for each pathway.
 #' @param betas Numeric vector of length `L` containing initial beta values.
@@ -42,8 +42,8 @@
 #' @examples
 #' \dontrun{
 #' # Assume simulation objects are already pre-generated.
-#' # See details in the `bsp_mkl()` example.
-#' result <- bsp_mkl_app(
+#' # See details in the `bps_mkl()` example.
+#' result <- bps_mkl_app(
 #'   iterations = N,
 #'   burn = burnin,
 #'   L = L,
@@ -59,7 +59,7 @@
 #' }
 #'
 #' @export
-bsp_mkl_app <- function(iterations, burn, L, As, Y, X, m,
+bps_mkl_app <- function(iterations, burn, L, As, Y, X, m,
                         P_eta = 0.2,
                         P_gamma = 0.2,
                         sigma2 = 0.1,
@@ -120,6 +120,16 @@ bsp_mkl_app <- function(iterations, burn, L, As, Y, X, m,
     }
   } else if (length(Etas) != L) {
     stop("Etas must be a list of length L.", call. = FALSE)
+  }
+
+  # check if diagonal element for each pathway has 1s
+  for(l in 1:L){
+    # if no nodes are one
+    if(sum(diag(As[[l]]))==0){
+      nodes = unique(c(which(As[[l]]==1,arr.ind = TRUE)))
+      # force all the nodes appear at least once on edges being considered for importance analysis
+      As[[l]][cbind(nodes, nodes)] <- 1
+    }
   }
 
   inits <- list(constants, sigma2, lambdas, betas, gammas, Etas)

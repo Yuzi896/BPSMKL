@@ -1,7 +1,7 @@
 #' Run BPS-MKL from individual initial values
 #'
-#' `bsp_mkl()` collects the individual initial values into the list expected by
-#' the C++ sampler and then runs the dense-kernel BPS-MKL MCMC algorithm.
+#' `bps_mkl()` collects the individual initial values into the list expected by
+#' the C++ sampler and then runs BPS-MKL algorithm.
 #'
 #' @param iterations Integer. Total number of MCMC iterations to run.
 #' @param burn Integer. Number of burn-in iterations used for proposal
@@ -12,9 +12,9 @@
 #' @param Y Numeric response vector or `n x 1` matrix.
 #' @param X Numeric `n x p` design matrix, with observations in rows and
 #'   predictors in columns.
-#' @param P_eta Numeric scalar eta inclusion probability.
-#' @param P_gamma Numeric scalar gamma inclusion probability.
-#' @param sigma2 Numeric scalar initial residual variance.
+#' @param P_eta Numeric scalar. eta inclusion probability.
+#' @param P_gamma Numeric scalar. gamma inclusion probability.
+#' @param sigma2 Numeric scalar. initial residual variance.
 #' @param lambdas Numeric vector of length `2 * L`, with interaction and
 #'   main-effect bandwidths for each pathway.
 #' @param betas Numeric vector of length `L` containing initial beta values.
@@ -72,7 +72,7 @@
 #'
 #' Y <- drop(FX %*% beta + rnorm(n, sd = sqrt(sigma2)))
 #'
-#' result <- bsp_mkl(
+#' result <- bps_mkl(
 #'   iterations = 5000,
 #'   burn = 1000,
 #'   L = L,
@@ -87,7 +87,7 @@
 #' }
 #'
 #' @export
-bsp_mkl <- function(iterations, burn, L, As, Y, X,
+bps_mkl <- function(iterations, burn, L, As, Y, X,
                     P_eta = 0.2,
                     P_gamma = 0.2,
                     sigma2 = 0.1,
@@ -142,6 +142,16 @@ bsp_mkl <- function(iterations, burn, L, As, Y, X,
     }
   } else if (length(Etas) != L) {
     stop("Etas must be a list of length L.", call. = FALSE)
+  }
+
+  # check if diagonal element for each pathway has 1s
+  for(l in 1:L){
+    # if no nodes are one
+    if(sum(diag(As[[l]]))==0){
+      nodes = unique(c(which(As[[l]]==1,arr.ind = TRUE)))
+      # force all the nodes appear at least once on edges being considered for importance analysis
+      As[[l]][cbind(nodes, nodes)] <- 1
+    }
   }
 
   inits <- list(constants, sigma2, lambdas, betas, gammas, Etas)

@@ -7,7 +7,7 @@
 #' returns pathway-level AUC values. When `Figure = TRUE` and `ggplot2` is
 #' available, it also returns diagnostic heatmaps.
 #'
-#' @param res Result list returned by `bsp_mkl()` or `bsp_mkl_app()`.
+#' @param res Result list returned by `bps_mkl()` or `bps_mkl_app()`.
 #' @param pathway Optional simulated pathway object, such as the output from
 #'   `simulate_pathway()`. When supplied, `pathway$A_imp` is used as truth for
 #'   AUC calculation and optional figures.
@@ -23,7 +23,7 @@
 #'
 #' @return A list containing:
 #' \describe{
-#'   \item{`idx_res`}{A data frame with `pathway`, `idx1`, `idx2`,
+#'   \item{`idx_res`}{A data frame with `pathway_id`, `idx1`, `idx2`,
 #'   `estimated`, and `P_pathway`. If `pathway` is supplied, it also contains
 #'   `truth`.}
 #'   \item{`auc_sim`}{A data frame with pathway-level AUC values. Returned only
@@ -50,7 +50,7 @@ res_summary <- function(res,
     p <- dim(res$eta_whole[[1]])[1]
   }
 
-  has_truth <- !is.null(pathway) && !is.null(pathway$A_imp)
+  has_truth <- !is.null(pathway) && !is.null(gammas)
   gamma_prob <- numeric(L)
   idx_res_list <- vector("list", L)
   eta_prob <- vector("list", L)
@@ -84,7 +84,7 @@ res_summary <- function(res,
     eta_prob[[i]] <- eta_mat_vec
 
     idx_res_i <- data.frame(
-      pathway = i,
+      pathway_id = i,
       idx1 = idx$idx1,
       idx2 = idx$idx2,
       estimated = eta_est,
@@ -104,7 +104,7 @@ res_summary <- function(res,
         } else {
           pos <- eta_est[truth == 1]
           neg <- eta_est[truth == 0]
-          auc_values[i] <- mean(outer(pos, neg, ">") + 0.5 * outer(pos, neg, "=="))
+          auc_values[i] <- NA
         }
       }
     }
@@ -141,7 +141,7 @@ res_summary <- function(res,
         ggplot2::scale_fill_viridis_c(limits = c(0, 1)) +
         ggplot2::coord_fixed() +
         ggplot2::labs(
-          title = paste0("Inferred Eta[[", k, "]]"),
+          title = paste0("Inferred Eta[[", k, "]] ","Pathway Prob: ",gamma_prob[k]),
           x = "Node i",
           y = "Node j"
         ) +
